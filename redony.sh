@@ -28,12 +28,17 @@
 RELE_LE=(2_03 2_05 2_06 2_09 2_11 2_14 3_09 3_12 3_14)
 RELE_FEL=(2_02 2_04 2_07 2_10 2_12 2_13 3_10 3_11 3_13)
 
-#IRANY=(${RELE_LE[*]})
-IRANY=(${RELE_FEL[*]})
+if [ "$1" = "FEL" ]
+then
+	IRANY=(${RELE_FEL[*]})
+else
+	IRANY=(${RELE_LE[*]})
+fi
 
 for RELE in ${IRANY[*]}
 do
 	curl --request POST --url "http://192.168.88.32:8080/rest/relay/$RELE" --data 'mode=simple&value=1'
+	echo
 done
 
 sleep 30
@@ -41,5 +46,6 @@ sleep 30
 for RELE in ${IRANY[*]}
 do
 	curl --request POST --url "http://192.168.88.32:8080/rest/relay/$RELE" --data 'mode=simple&value=0'
+	echo
 done
 
