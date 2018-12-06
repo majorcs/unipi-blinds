@@ -4,7 +4,9 @@ import json
 import logging
 import logging.handlers
 import paho.mqtt.client as mqtt
+import sys
 import time
+import traceback
 import websocket
 
 from threading import Timer,Thread,Event
@@ -37,6 +39,9 @@ url = "ws://192.168.88.32:8080/ws"
 #thread = MyThread(stopFlag)
 #thread.start()
 
+def on_log(client, userdata, level, buf):
+    mylog.debug("[MQTT]ONLOG: %s, %s, %s, %s" % (client, userdata, level, buf))
+
 def on_ws_message(ws, message):
     obj = json.loads(message)
     mylog.debug(message)
@@ -47,7 +52,7 @@ def on_ws_message(ws, message):
         mylog.info("[WEBSOCKET]Value: " + str(value) + " Device: " + str(dev) + " Circuit: " + str(circuit))
   
 def on_ws_error(ws, error):
-    mylog.error("[WEBSOCKET]"+error)
+    mylog.error("[WEBSOCKET]%s" % (error))
 
 def on_ws_close(ws):
     mylog.info("[WEBSOCKET]Connection closed")
@@ -65,26 +70,39 @@ def on_mqtt_connect(client, userdata, flags, rc):
 
     client.subscribe("#")
 
+def on_mqtt_disconnect(client, userdata, rc):
+    mylog.info("[MQTT]Disconnected")
+
 # The callback for when a PUBLISH message is received from the server.
 def on_mqtt_message(client, userdata, msg):
-    global tmsg
-    tmsg = msg.topic+" "+str(msg.payload)
-    mylog.info("[MQTT]"+msg.topic+" "+str(msg.payload))
-    if (msg.topic == "mcs"):
-        #ws.send(json.dumps({"cmd":"all"}))
-        b.go_to(int(msg.payload))
+    try:
+        global tmsg
+        tmsg = msg.topic+" "+str(msg.payload)
+        mylog.info("[MQTT]"+msg.topic+" "+str(msg.payload))
+        if (msg.topic == "mcs"):
+            #ws.send(json.dumps({"cmd":"all"}))
+                b.go_to(int(msg.payload))
+    except Exception as e:
+        print("ERROR: %s" % e)
+        traceback.print_exc()
 
 client = mqtt.Client()
 client.on_connect = on_mqtt_connect
+client.on_disconnect = on_mqtt_disconnect
 client.on_message = on_mqtt_message
+#client.on_log = on_log
+client.enable_logger(mylog)
 client.connect("192.168.88.24", 1883, 60)
 
 #receiving messages
 ws = websocket.WebSocketApp(url, on_open = on_ws_open, on_message = on_ws_message, on_error = on_ws_error, on_close = on_ws_close)
-b = Blinds(ws, 'led', '1_02', '1_03')
+b = Blinds(ws, client, 'led', '1_02', '1_03')
 
 
 client.loop_start()
 ws.run_forever()
+mylog.debug("WS stopped")
+
+client.disconnect()
 client.loop_stop(force=False)
 #stopFlag.set()
