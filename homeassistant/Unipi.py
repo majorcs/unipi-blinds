@@ -37,7 +37,7 @@ class Blinds:
                 self.position = self.orig_position - diff
             if self.state == 2:
                 self.position = self.orig_position + diff
-            logging.debug("New position: %s" % self.position)
+            logging.debug("New position: %s; destination: %s" % (self.position, self.new_position))
             if (self.position > 100) or (self.position < 0):
                 self.position = min(max(0, self.position), 100)
                 logging.error("Position overrun; stop and set back to: %s" % self.position)
@@ -55,17 +55,20 @@ class Blinds:
         self.timer.start()
         self.send_state_update()
 
+    def clear_timer(self):
+        if hasattr(self, 'timer'):
+            self.timer.cancel()
+            self.timer = None
+
     def stop(self, timer=False):
         if timer:
             self.position = self.new_position
             self.send_state_update()
-        elif hasattr(self, 'timer'):
-            self.timer.cancel()
-            self.timer = None
+        self.clear_timer()
+        self.state = 0
         logging.debug("STOP; POS: %s" % (self.position))
         self.ws_call(self.device, self.up_circuit, 0)
         self.ws_call(self.device, self.down_circuit, 0)
-        self.state = 0
 
     def go_up(self, sleep_time):
         logging.info("Going up for %s seconds" % (sleep_time))
@@ -78,8 +81,10 @@ class Blinds:
         self.go(sleep_time, self.device, self.down_circuit)
         
     def go_to(self, position):
+        if self.state != 0:
+            self.stop()
+
         position = min(max(0, position), 100)
-        
         logging.info("Going to: %s" % (position))
         self.orig_position = self.position
         diff = self.position - position
