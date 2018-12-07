@@ -68,7 +68,7 @@ def on_ws_open(ws):
 def on_mqtt_connect(client, userdata, flags, rc):
     mylog.info("[MQTT]Connected with result code "+str(rc))
 
-    client.subscribe("#")
+    client.subscribe("homeassistant/cover/#")
 
 def on_mqtt_disconnect(client, userdata, rc):
     mylog.info("[MQTT]Disconnected")
@@ -77,11 +77,22 @@ def on_mqtt_disconnect(client, userdata, rc):
 def on_mqtt_message(client, userdata, msg):
     try:
         global tmsg
-        tmsg = msg.topic+" "+str(msg.payload)
-        mylog.info("[MQTT]"+msg.topic+" "+str(msg.payload))
+        payload = msg.payload.decode()
+        tmsg = msg.topic+" "+str(payload)
+        mylog.info("[MQTT]"+msg.topic+" "+payload)
+        if (msg.topic == "homeassistant/cover/set_position"):
+            b.go_to(int(payload))
+        if (msg.topic == "homeassistant/cover/set"):
+            mylog.debug("SETTING blinds to a state")
+            if (payload == "OPEN"):
+                b.go_to(100)
+            if (payload == "CLOSE"):
+                b.go_to(0)
+            if (payload == "STOP"):
+                b.stop()
         if (msg.topic == "mcs"):
             #ws.send(json.dumps({"cmd":"all"}))
-                b.go_to(int(msg.payload))
+            b.go_to(int(payload))
     except Exception as e:
         print("ERROR: %s" % e)
         traceback.print_exc()

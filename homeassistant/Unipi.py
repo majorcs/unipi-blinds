@@ -12,7 +12,9 @@ import websocket
 
 class Blinds:
     def __init__(self, ws, mqtt, device, up_circuit, down_circuit, timer_full = 20, timer_partial = 10):
-        self.position = 0
+        self.position = 100
+        self.orig_position = self.position
+        self.new_position = self.position
         self.timers = {}
         self.timers['full'] = timer_full
         self.timers['partial'] = timer_partial
@@ -35,23 +37,34 @@ class Blinds:
                 self.position = self.orig_position - diff
             if self.state == 2:
                 self.position = self.orig_position + diff
-            print(self.position)
-            self.mqtt.publish('DEMO', payload=self.position)
+            logging.debug("New position: %s" % self.position)
+            if (self.position > 100) or (self.position < 0):
+                self.position = min(max(0, self.position), 100)
+                logging.error("Position overrun; stop and set back to: %s" % self.position)
+                self.stop()
+            else:
+                Timer(0.5, self.send_state_update).start()
 
-            Timer(0.5, self.send_state_update).start()
+        self.mqtt.publish('homeassistant/cover/position', payload=self.position)
 
     def go(self, sleep_time, device, circuit):
         logging.debug("GO: %s, %s, %s" % (device, circuit, self.state))
         self.ws_call(device, circuit, 1)
         self.start_time = time.time()
-        Timer(sleep_time, lambda: self.stop(device, circuit, timer=True)).start()
+        self.timer = Timer(sleep_time, self.stop, None, {'timer': True})
+        self.timer.start()
         self.send_state_update()
 
-    def stop(self, device, circuit, timer=False):
+    def stop(self, timer=False):
         if timer:
             self.position = self.new_position
-        logging.debug("STOP: %s, %s; POS: %s" % (device, circuit, self.position))
-        self.ws_call(device, circuit, 0)
+            self.send_state_update()
+        elif hasattr(self, 'timer'):
+            self.timer.cancel()
+            self.timer = None
+        logging.debug("STOP; POS: %s" % (self.position))
+        self.ws_call(self.device, self.up_circuit, 0)
+        self.ws_call(self.device, self.down_circuit, 0)
         self.state = 0
 
     def go_up(self, sleep_time):
@@ -65,16 +78,15 @@ class Blinds:
         self.go(sleep_time, self.device, self.down_circuit)
         
     def go_to(self, position):
-        if position > 100:
-            position = 100
-        if position < 0:
-            position = 0
+        position = min(max(0, position), 100)
+        
         logging.info("Going to: %s" % (position))
         self.orig_position = self.position
         diff = self.position - position
         t = (abs(diff)/100)*self.timers['full']
-        if diff < 0:
-            self.go_down(t)
-        else:
-            self.go_up(t)
+        if (t > 1):
+            if diff < 0:
+                self.go_down(t)
+            else:
+                self.go_up(t)
         self.new_position = position
