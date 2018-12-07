@@ -11,8 +11,9 @@ import time
 import websocket
 
 class Blinds:
-    def __init__(self, ws, mqtt, device, up_circuit, down_circuit, timer_full = 20, timer_partial = 10):
+    def __init__(self, id, ws, mqtt, device, up_circuit, down_circuit, timer_full = 20, timer_partial = 10):
         self.position = 100
+        self.id = id
         self.orig_position = self.position
         self.new_position = self.position
         self.timers = {}
@@ -24,6 +25,45 @@ class Blinds:
         self.ws = ws
         self.mqtt = mqtt
         self.state = 0
+        self.autoconfig()
+
+    def on_mqtt_message(self, client, userdata, msg):
+        try:
+            payload = msg.payload.decode()
+            logging.debug("[BLINDSMQTT/%s]%s: %s" % (self, msg.topic, payload))
+            if (msg.topic == "homeassistant/cover/%s/set_position" % self.id):
+                self.go_to(int(payload))
+            if (msg.topic == "homeassistant/cover/%s/set" % self.id):
+                logging.debug("SETTING blinds to a state")
+                if (payload == "OPEN"):
+                    self.go_to(100)
+                if (payload == "CLOSE"):
+                    self.go_to(0)
+                if (payload == "STOP"):
+                    self.stop()
+        except Exception as e:
+            print("ERROR: %s" % e)
+            traceback.print_exc()
+
+    def autoconfig(self):
+        self.mqtt.publish('homeassistant/cover/%s/config' % (self.id), '')
+        self.mqtt.publish('homeassistant/cover/%s/config' % (self.id),
+            json.dumps({"unique_id": self.id, "name": self.id,
+                        "command_topic": "homeassistant/cover/%s/set" % self.id,
+                        "position_topic": "homeassistant/cover/%s/position" % self.id,
+                        "set_position_topic": "homeassistant/cover/%s/set_position" % self.id,
+                        "qos": 0,
+                        "retain": False,
+                        "payload_open": "OPEN",
+                        "payload_close": "CLOSE",
+                        "payload_stop": "STOP",
+                        "position_open": 100,
+                        "position_closes": 0,
+                        "optimistic": False
+            }))
+        self.mqtt.message_callback_add("homeassistant/cover/%s/set_position" % self.id, self.on_mqtt_message)
+        self.mqtt.message_callback_add("homeassistant/cover/%s/set" % self.id, self.on_mqtt_message)
+
 
     def ws_call(self, device, circuit, value):
         wsmsg = json.dumps({"cmd": "set", "dev": device, "circuit": circuit, "value": value})
@@ -43,9 +83,9 @@ class Blinds:
                 logging.error("Position overrun; stop and set back to: %s" % self.position)
                 self.stop()
             else:
-                Timer(0.5, self.send_state_update).start()
+                Timer(1, self.send_state_update).start()
 
-        self.mqtt.publish('homeassistant/cover/position', payload=self.position)
+        self.mqtt.publish('homeassistant/cover/%s/position' % self.id, payload=self.position)
 
     def go(self, sleep_time, device, circuit):
         logging.debug("GO: %s, %s, %s" % (device, circuit, self.state))

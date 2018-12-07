@@ -73,42 +73,19 @@ def on_mqtt_connect(client, userdata, flags, rc):
 def on_mqtt_disconnect(client, userdata, rc):
     mylog.info("[MQTT]Disconnected")
 
-# The callback for when a PUBLISH message is received from the server.
-def on_mqtt_message(client, userdata, msg):
-    try:
-        global tmsg
-        payload = msg.payload.decode()
-        tmsg = msg.topic+" "+str(payload)
-        mylog.info("[MQTT]"+msg.topic+" "+payload)
-        if (msg.topic == "homeassistant/cover/set_position"):
-            b.go_to(int(payload))
-        if (msg.topic == "homeassistant/cover/set"):
-            mylog.debug("SETTING blinds to a state")
-            if (payload == "OPEN"):
-                b.go_to(100)
-            if (payload == "CLOSE"):
-                b.go_to(0)
-            if (payload == "STOP"):
-                b.stop()
-        if (msg.topic == "mcs"):
-            #ws.send(json.dumps({"cmd":"all"}))
-            b.go_to(int(payload))
-    except Exception as e:
-        print("ERROR: %s" % e)
-        traceback.print_exc()
-
 client = mqtt.Client()
 client.on_connect = on_mqtt_connect
 client.on_disconnect = on_mqtt_disconnect
-client.on_message = on_mqtt_message
 #client.on_log = on_log
 client.enable_logger(mylog)
 client.connect("192.168.88.24", 1883, 60)
 
 #receiving messages
 ws = websocket.WebSocketApp(url, on_open = on_ws_open, on_message = on_ws_message, on_error = on_ws_error, on_close = on_ws_close)
-b = Blinds(ws, client, 'led', '1_02', '1_03')
-
+b = [
+        Blinds('redony_uj_01', ws, client, 'led', '1_01', '1_02'),
+        Blinds('redony_uj_02', ws, client, 'led', '1_03', '1_04')
+    ]
 
 client.loop_start()
 ws.run_forever()
