@@ -12,32 +12,12 @@ import websocket
 from threading import Timer,Thread,Event
 from Unipi import Blinds
 
-tmsg=''
-
-class MyThread(Thread):
-    def __init__(self, event):
-        Thread.__init__(self)
-        self.stopped = event
-
-    def run(self):
-        global tmsg
-        while not self.stopped.wait(0.5):
-            print("my thread: "+tmsg)
-            # call a function
-
-devices = []
-ws = websocket.WebSocket()
 
 logging.basicConfig(format='%(asctime)s [%(levelname)s]: %(message)s', level=logging.DEBUG)
 mylog = logging.getLogger('MyLogger')
 # handler = logging.handlers.SysLogHandler(address = '/dev/log')
 #mylog.addHandler(handler)
 
-url = "ws://192.168.88.32:8080/ws"
-
-#stopFlag = Event()
-#thread = MyThread(stopFlag)
-#thread.start()
 
 def on_log(client, userdata, level, buf):
     mylog.debug("[MQTT]ONLOG: %s, %s, %s, %s" % (client, userdata, level, buf))
@@ -73,24 +53,28 @@ def on_mqtt_connect(client, userdata, flags, rc):
 def on_mqtt_disconnect(client, userdata, rc):
     mylog.info("[MQTT]Disconnected")
 
-client = mqtt.Client()
-client.on_connect = on_mqtt_connect
-client.on_disconnect = on_mqtt_disconnect
-#client.on_log = on_log
-client.enable_logger(mylog)
-client.connect("192.168.88.24", 1883, 60)
+if __name__ == "__main__":
+    devices = []
+    url = "ws://192.168.88.32:8080/ws"
+    ws = websocket.WebSocket()
 
-#receiving messages
-ws = websocket.WebSocketApp(url, on_open = on_ws_open, on_message = on_ws_message, on_error = on_ws_error, on_close = on_ws_close)
-b = [
-        Blinds('redony_uj_01', ws, client, 'led', '1_01', '1_02'),
-        Blinds('redony_uj_02', ws, client, 'led', '1_03', '1_04')
-    ]
+    client = mqtt.Client()
+    client.on_connect = on_mqtt_connect
+    client.on_disconnect = on_mqtt_disconnect
+    #client.on_log = on_log
+    client.enable_logger(mylog)
+    client.connect("192.168.88.24", 1883, 60)
 
-client.loop_start()
-ws.run_forever()
-mylog.debug("WS stopped")
+    #receiving messages
+    ws = websocket.WebSocketApp(url, on_open = on_ws_open, on_message = on_ws_message, on_error = on_ws_error, on_close = on_ws_close)
+    b = [
+            Blinds('redony_uj_01', ws, client, 'led', '1_01', '1_02'),
+            Blinds('redony_uj_02', ws, client, 'led', '1_03', '1_04')
+        ]
 
-client.disconnect()
-client.loop_stop(force=False)
-#stopFlag.set()
+    client.loop_start()
+    ws.run_forever()
+    mylog.debug("WS stopped")
+
+    client.disconnect()
+    client.loop_stop(force=False)
