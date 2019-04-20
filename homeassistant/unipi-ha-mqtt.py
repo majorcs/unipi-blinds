@@ -63,7 +63,7 @@ if __name__ == "__main__":
     client.on_disconnect = on_mqtt_disconnect
     #client.on_log = on_log
     client.enable_logger(mylog)
-    client.connect("192.168.88.24", 1883, 60)
+    client.connect("192.168.88.33", 1883, 60)
 
     #receiving messages
     ws = websocket.WebSocketApp(url, on_open = on_ws_open, on_message = on_ws_message, on_error = on_ws_error, on_close = on_ws_close)

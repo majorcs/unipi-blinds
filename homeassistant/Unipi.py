@@ -96,16 +96,17 @@ class Blinds:
         self.send_state_update()
 
     def clear_timer(self):
-        if hasattr(self, 'timer'):
+        self.state = 0
+        if hasattr(self, 'timer') and self.timer:
             self.timer.cancel()
             self.timer = None
 
     def stop(self, timer=False):
+        self.state = 0
         if timer:
             self.position = self.new_position
             self.send_state_update()
         self.clear_timer()
-        self.state = 0
         logging.debug("STOP; POS: %s" % (self.position))
         self.ws_call(self.device, self.up_circuit, 0)
         self.ws_call(self.device, self.down_circuit, 0)
@@ -121,8 +122,9 @@ class Blinds:
         self.go(sleep_time, self.device, self.down_circuit)
         
     def go_to(self, position):
+        logging.debug("STATE: %s" %(self.state))
         if self.state != 0:
-            self.stop()
+            return
 
         position = min(max(0, position), 100)
         logging.info("Going to: %s" % (position))
