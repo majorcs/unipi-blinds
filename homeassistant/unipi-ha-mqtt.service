@@ -1,0 +1,11 @@
+[Unit]
+Description=Unipy MQTT gateway
+After=network-online.target
+
+[Service]
+User=nobody
+Restart=on-failure
+ExecStart=/usr/local/sbin/unipi-ha-mqtt.py
+
+[Install]
+WantedBy=multi-user.target
