@@ -24,7 +24,7 @@ class Blinds:
         self.down_circuit = down_circuit
         self.ws = ws
         self.mqtt = mqtt
-        self.state = 0
+        self.state = -1
         self.autoconfig()
 
     def on_mqtt_message(self, client, userdata, msg):
@@ -46,7 +46,7 @@ class Blinds:
             traceback.print_exc()
 
     def autoconfig(self):
-        self.mqtt.publish('homeassistant/cover/%s/config' % (self.id), '')
+        self.mqtt.publish('homeassistant/cover/%s/config' % (self.id), '', retain=True)
         self.mqtt.publish('homeassistant/cover/%s/config' % (self.id),
             json.dumps({"unique_id": self.id, "name": self.id,
                         "command_topic": "homeassistant/cover/%s/set" % self.id,
@@ -60,7 +60,7 @@ class Blinds:
                         "position_open": 100,
                         "position_closes": 0,
                         "optimistic": False
-            }))
+            }), retain=True)
         self.mqtt.message_callback_add("homeassistant/cover/%s/set_position" % self.id, self.on_mqtt_message)
         self.mqtt.message_callback_add("homeassistant/cover/%s/set" % self.id, self.on_mqtt_message)
 
@@ -71,7 +71,7 @@ class Blinds:
         self.ws.send(wsmsg)
 
     def send_state_update(self):
-        if self.state != 0:
+        if self.state > 0:
             diff = int((time.time() - self.start_time) / self.timers['full'] * 100)
             if self.state == 1:
                 self.position = self.orig_position - diff
@@ -123,9 +123,16 @@ class Blinds:
         
     def go_to(self, position):
         logging.debug("STATE: %s" %(self.state))
-        if self.state != 0:
+        if self.state > 0:
             return
 
+        # state is unknown yet
+        if state == -1:
+            # assume we're on the opposite position
+            if position > 50
+                self.position = 0
+            else:
+                self.position = 100
         position = min(max(0, position), 100)
         logging.info("Going to: %s" % (position))
         self.orig_position = self.position

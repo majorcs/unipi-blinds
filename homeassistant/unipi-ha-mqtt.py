@@ -68,8 +68,22 @@ if __name__ == "__main__":
     #receiving messages
     ws = websocket.WebSocketApp(url, on_open = on_ws_open, on_message = on_ws_message, on_error = on_ws_error, on_close = on_ws_close)
     b = [
-            Blinds('redony_uj_01', ws, client, 'led', '1_01', '1_02'),
-            Blinds('redony_uj_02', ws, client, 'led', '1_03', '1_04')
+            Blinds('dolgozo_01', ws, client, 'relay', '3_14', '3_13'),
+            Blinds('dolgozo_02', ws, client, 'relay', '2_06', '2_07'),
+
+            Blinds('haloszoba_01', ws, client, 'relay', '3_09', '3_10', timer_full=18),
+            Blinds('haloszoba_02', ws, client, 'relay', '3_12', '3_11', timer_full=18),
+            Blinds('haloszoba_03', ws, client, 'relay', '2_03', '2_02', timer_full=28),
+
+            Blinds('marci_01', ws, client, 'relay', '2_09', '2_10', timer_full=18),
+            Blinds('marci_02', ws, client, 'relay', '2_05', '2_04', timer_full=28),
+
+            Blinds('domi_01', ws, client, 'relay', '2_11', '2_12', timer_full=28),
+            Blinds('domi_02', ws, client, 'relay', '2_14', '2_13', timer_full=18),
+
+            Blinds('konyha_01', ws, client, 'relay', '3_07', '3_06', timer_full=18),
+            Blinds('konyha_02', ws, client, 'relay', '3_02', '3_03', timer_full=18),
+            Blinds('konyha_03', ws, client, 'relay', '3_05', '3_04', timer_full=18),
         ]
 
     client.loop_start()
