@@ -129,7 +129,7 @@ class Blinds:
         # state is unknown yet
         if state == -1:
             # assume we're on the opposite position
-            if position > 50
+            if position > 50:
                 self.position = 0
             else:
                 self.position = 100
