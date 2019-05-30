@@ -53,7 +53,7 @@ class Blinds:
                         "position_topic": "homeassistant/cover/%s/position" % self.id,
                         "set_position_topic": "homeassistant/cover/%s/set_position" % self.id,
                         "qos": 0,
-                        "retain": True,
+                        "retain": False,
                         "payload_open": "OPEN",
                         "payload_close": "CLOSE",
                         "payload_stop": "STOP",
