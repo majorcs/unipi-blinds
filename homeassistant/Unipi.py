@@ -53,12 +53,12 @@ class Blinds:
                         "position_topic": "homeassistant/cover/%s/position" % self.id,
                         "set_position_topic": "homeassistant/cover/%s/set_position" % self.id,
                         "qos": 0,
-                        "retain": False,
+                        "retain": True,
                         "payload_open": "OPEN",
                         "payload_close": "CLOSE",
                         "payload_stop": "STOP",
                         "position_open": 100,
-                        "position_closes": 0,
+                        "position_closed": 0,
                         "optimistic": False
             }), retain=True)
         self.mqtt.message_callback_add("homeassistant/cover/%s/set_position" % self.id, self.on_mqtt_message)
