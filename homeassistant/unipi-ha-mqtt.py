@@ -48,7 +48,7 @@ def on_ws_open(ws):
 def on_mqtt_connect(client, userdata, flags, rc):
     mylog.info("[MQTT]Connected with result code "+str(rc))
 
-    client.subscribe("homeassistant/cover/#")
+    #client.subscribe("homeassistant/cover/#")
 
 def on_mqtt_disconnect(client, userdata, rc):
     mylog.info("[MQTT]Disconnected")

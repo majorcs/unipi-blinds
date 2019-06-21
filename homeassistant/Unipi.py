@@ -8,6 +8,7 @@ import logging
 import re
 import requests
 import time
+import uuid
 import websocket
 
 class Blinds:
@@ -46,9 +47,8 @@ class Blinds:
             traceback.print_exc()
 
     def autoconfig(self):
-        self.mqtt.publish('homeassistant/cover/%s/config' % (self.id), '', retain=True)
         self.mqtt.publish('homeassistant/cover/%s/config' % (self.id),
-            json.dumps({"unique_id": self.id, "name": self.id,
+            json.dumps({"unique_id": str(uuid.uuid4()), "name": self.id,
                         "command_topic": "homeassistant/cover/%s/set" % self.id,
                         "position_topic": "homeassistant/cover/%s/position" % self.id,
                         "set_position_topic": "homeassistant/cover/%s/set_position" % self.id,
@@ -61,7 +61,9 @@ class Blinds:
                         "position_closed": 0,
                         "optimistic": False
             }), retain=True)
+        self.mqtt.subscribe("homeassistant/cover/%s/set_position" % self.id)
         self.mqtt.message_callback_add("homeassistant/cover/%s/set_position" % self.id, self.on_mqtt_message)
+        self.mqtt.subscribe("homeassistant/cover/%s/set" % self.id)
         self.mqtt.message_callback_add("homeassistant/cover/%s/set" % self.id, self.on_mqtt_message)
 
 
