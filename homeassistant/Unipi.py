@@ -48,7 +48,7 @@ class Blinds:
 
     def autoconfig(self):
         self.mqtt.publish('homeassistant/cover/%s/config' % (self.id),
-            json.dumps({"unique_id": str(uuid.uuid4()), "name": self.id,
+            json.dumps({"unique_id": str(uuid.uuid3(uuid.NAMESPACE_URL, self.id)), "name": self.id,
                         "command_topic": "homeassistant/cover/%s/set" % self.id,
                         "position_topic": "homeassistant/cover/%s/position" % self.id,
                         "set_position_topic": "homeassistant/cover/%s/set_position" % self.id,
